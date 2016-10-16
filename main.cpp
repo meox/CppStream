@@ -4,7 +4,7 @@
 #include <functional>
 #include <memory>
 
-
+#define DELAYED(expr) [=]{ return expr; }
 
 namespace z
 {
@@ -166,9 +166,10 @@ namespace z
 		if (stream_null(s))
 			return s;
 		else
-			return stream_cons(f(stream_car(s)), [=]{
-				return stream_map(stream_cdr(s), f);
-			});
+			return	stream_cons(
+				f(stream_car(s)),
+				DELAYED(stream_map(stream_cdr(s), f))
+			);
 	}
 
 	template <typename F>
@@ -189,15 +190,9 @@ namespace z
 
 		value_t c = stream_car(s)->value;
 		if (pred(c))
-		{
-			return stream_cons(c,  [=]{
-				return stream_filter(stream_cdr(s), pred);
-			});
-		}
+			return stream_cons(c, DELAYED(stream_filter(stream_cdr(s), pred)));
 		else
-		{
 			return stream_filter(stream_cdr(s), pred);
-		}
 	}
 
 	list_ptr s_interval(size_t l, size_t h)
@@ -205,7 +200,7 @@ namespace z
 		if (l > h)
 			return nullptr;
 		else
-			return stream_cons(l, [=]{ return s_interval(l+1, h); });
+			return stream_cons(l, DELAYED(s_interval(l+1, h)));
 	}
 }
 
@@ -257,11 +252,7 @@ int main()
 	//auto s = cons(0, cons(1, cons(7)));
 	//println(s);
 
-	auto sa = cons(7, []{
-		return cons(1, []{
-			return cons(2);
-		});
-	});
+	auto sa = cons(7, DELAYED(cons(1, DELAYED(cons(2)))));
 
 	stream_println(sa);
 
